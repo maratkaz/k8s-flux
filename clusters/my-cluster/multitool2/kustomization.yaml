@@ -1,5 +1,5 @@
+namespace: default
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-#  - multitool
-  - multitool2
+  - multitool2.yaml
