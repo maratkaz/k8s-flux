@@ -8,4 +8,4 @@ spec:
   interval: 30s
   ref:
     tag: v1.0.0
-  url: ssh://git@github.com/maratkaz/k8s-flux.git
+  url: ssh://git@github.com/maratkaz/k8s-flux
