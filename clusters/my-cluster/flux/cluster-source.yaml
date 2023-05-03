@@ -8,4 +8,6 @@ spec:
   interval: 30s
   ref:
     tag: v1.0.0
+  secretRef:
+    name: flux-system
   url: ssh://git@github.com/maratkaz/k8s-flux
