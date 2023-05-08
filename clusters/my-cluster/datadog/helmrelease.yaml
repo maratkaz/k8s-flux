@@ -1,0 +1,159 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: datadog
+  namespace: datadog
+spec:
+  chart:
+    spec:
+      chart: datadog
+      version: "3.20.3"
+      sourceRef:
+        kind: HelmRepository
+        name: datadog
+        namespace: datadog
+      interval: 1m
+  releaseName: datadog
+  values:
+    registry: public.ecr.aws/datadog
+    agents:
+      image:
+        tag: "7.43.1"
+        #tagSuffix: "jmx"
+        #pullSecrets:
+        #  - name: eng-docker-snapshot
+      updateStrategy:
+        type: RollingUpdate
+        rollingUpdate:
+          maxUnavailable: "50%" # Allow half of the agents to be updated at once to speed up the rollout
+      enabled: true
+    clusterAgent:
+      enabled: true
+      image:
+        repository: public.ecr.aws/datadog/cluster-agent
+    clusterChecksRunner:
+      enabled: true
+      image:
+        repository: public.ecr.aws/datadog/agent
+    datadog:
+      secretBackend:
+        command: "/readsecret_multiple_providers.sh"
+      #apiKeyExistingSecret: datadog-secret
+      # Set to false globally to prevent kong and other clusters from inheriting APM.
+      apm:
+        # APM kept intentionally disabled to save costs
+        # Enable per cluster where needed
+        port: 8126
+        enabled: false
+        portEnabled: false
+      # clusterChecks:
+      #   enabled: true
+      # helmCheck:
+      #   enabled: true
+      #   collectEvents: true
+      collectEvents: true
+      confd:
+        disk.yaml: |-
+          init_config:
+          instances:
+            - use_mount: false
+              excluded_filesystems:
+                - autofs
+                - /proc/sys/fs/binfmt_misc
+                - /host/proc/sys/fs/binfmt_misc
+      dogstatsd:
+        port: 8125
+        nonLocalTraffic: true
+        originDetection: true
+        useHostPort: true
+      kubeStateMetricsEnabled: true
+      kubeStateMetricsCore:
+        enabled: true
+        ignoreLegacyKSMCheck: true
+      logLevel: INFO
+      # Controls logs produced within Datadog container
+      containerExcludeLogs: "name:datadog* name:dd-agent* kube_namespace:datadog"
+      logs:
+        containerCollectAll: true
+        containerCollectUsingFiles: false
+        enabled: true
+      networkMonitoring:
+        # Set false globally. Cost per host when enabled.
+        enabled: false
+      podAnnotationsAsTags:
+        iam.amazonaws.com/role: kube_iamrole
+      podLabelsAsTags:
+        app: kube_app
+        release: helm_release
+      processAgent:
+        enabled: true
+        processCollection: true
+      serviceTopology:
+        # This enables a common clusterIP to send metrics.
+        # Without serviceTopology enabled at the cluster level though, certain tags may not work for traces
+        enabled: false
+      systemProbe:
+        apparmor: unconfined
+        bpfDebug: false
+        debugPort: 0
+        enableConntrack: true
+        enabled: false
+        seccomp: localhost/system-probe
+        seccompRoot: /var/lib/kubelet/seccomp
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: psp:unprivileged
+  namespace: datadog
+rules:
+  - resources:
+      - podsecuritypolicies
+    apiGroups:
+      - policy
+    resourceNames:
+      - kube-system
+    verbs:
+      - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp:unprivileged:datadog
+  namespace: datadog
+roleRef:
+  name: psp:unprivileged
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - name: datadog
+    namespace: datadog
+    kind: ServiceAccount
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp:unprivileged:datadog-cluster-agent
+  namespace: datadog
+roleRef:
+  name: psp:unprivileged
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - name: datadog-cluster-agent
+    namespace: datadog
+    kind: ServiceAccount
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: psp:unprivileged:datadog-kube-state-metrics
+  namespace: datadog
+roleRef:
+  name: psp:unprivileged
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+  - name: datadog-kube-state-metrics
+    namespace: datadog
+    kind: ServiceAccount
