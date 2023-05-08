@@ -3,3 +3,4 @@ kind: Kustomization
 resources:
   - multitool
   - multitool2
+  - datadog
