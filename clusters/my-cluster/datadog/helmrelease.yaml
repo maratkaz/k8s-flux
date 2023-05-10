@@ -2,7 +2,7 @@ apiVersion: helm.toolkit.fluxcd.io/v2beta1
 kind: HelmRelease
 metadata:
   name: datadog
-  namespace: default
+  namespace: datadog
 spec:
   interval: 1m
   chart:
@@ -12,7 +12,7 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: datadog
-        namespace: default
+        namespace: datadog
       interval: 1m
   releaseName: datadog
   values:
@@ -106,7 +106,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: psp:unprivileged
-  namespace: default
+  namespace: datadog
 rules:
   - resources:
       - podsecuritypolicies
@@ -121,40 +121,40 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: psp:unprivileged:datadog
-  namespace: default
+  namespace: datadog
 roleRef:
   name: psp:unprivileged
   kind: Role
   apiGroup: rbac.authorization.k8s.io
 subjects:
   - name: datadog
-    namespace: default
+    namespace: datadog
     kind: ServiceAccount
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: psp:unprivileged:datadog-cluster-agent
-  namespace: default
+  namespace: datadog
 roleRef:
   name: psp:unprivileged
   kind: Role
   apiGroup: rbac.authorization.k8s.io
 subjects:
   - name: datadog-cluster-agent
-    namespace: default
+    namespace: datadog
     kind: ServiceAccount
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: psp:unprivileged:datadog-kube-state-metrics
-  namespace: default
+  namespace: datadog
 roleRef:
   name: psp:unprivileged
   kind: Role
   apiGroup: rbac.authorization.k8s.io
 subjects:
   - name: datadog-kube-state-metrics
-    namespace: default
+    namespace: datadog
     kind: ServiceAccount
